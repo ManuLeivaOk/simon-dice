@@ -1,101 +1,145 @@
-import Image from "next/image";
+'use client'
+import { useState, useEffect } from "react";
 
-export default function Home() {
+type Color = {
+  id: string;
+  color: string;
+};
+
+const colors: Color[] = [
+  { id: "green", color: "bg-lime-500" },
+  { id: "red", color: "bg-red-500" },
+  { id: "blue", color: "bg-blue-500" },
+  { id: "yellow", color: "bg-yellow-500" },
+];
+
+export default function SimonDice() {
+  const [sequence, setSequence] = useState<string[]>([]);
+  const [playerInput, setPlayerInput] = useState<string[]>([]);
+  const [level, setLevel] = useState<number>(0);
+  const [achievements, setAchievements] = useState<string[]>([]);
+  const [isPlayerTurn, setIsPlayerTurn] = useState<boolean>(false);
+  const [gameStarted, setGameStarted] = useState<boolean>(false);
+  const [highScore, setHighScore] = useState<number>(0); // Nuevo estado para la puntuación máxima
+
+  // Flash a color button
+  const flashButton = (colorId: string) => {
+    const button = document.getElementById(colorId);
+    if (button) {
+      button.classList.add("opacity-50", "scale-110");
+      setTimeout(() => button.classList.remove("opacity-50", "scale-110"), 500);
+    }
+  };
+
+  // Add a new random color to the sequence
+  const addToSequence = () => {
+    const randomColor = colors[Math.floor(Math.random() * colors.length)].id;
+    setSequence((prev) => [...prev, randomColor]);
+  };
+
+  // Play the sequence for the player
+  const playSequence = async () => {
+    setIsPlayerTurn(false);
+    for (const color of sequence) {
+      flashButton(color);
+      await new Promise((resolve) => setTimeout(resolve, 800));
+    }
+    setIsPlayerTurn(true);
+  };
+
+  // Handle player's input
+  const handleInput = (colorId: string) => {
+    if (!isPlayerTurn) return;
+
+    const nextIndex = playerInput.length;
+    if (colorId === sequence[nextIndex]) {
+      setPlayerInput((prev) => [...prev, colorId]);
+
+      if (nextIndex + 1 === sequence.length) {
+        setPlayerInput([]);
+        setLevel((prev) => prev + 1);
+
+        // Actualizar logros
+        if ((nextIndex + 1) % 5 === 0) {
+          setAchievements((prev) => [...prev, `¡Lograste ${nextIndex + 1} niveles!`]);
+        }
+
+        // Verificar si se ha alcanzado un nuevo récord
+        if (level + 1 > highScore) {
+          setHighScore(level + 1);
+          localStorage.setItem('highScore', String(level + 1)); // Guardar el nuevo récord en localStorage
+        }
+
+        setTimeout(() => {
+          addToSequence();
+          playSequence();
+        }, 1000);
+      }
+    } else {
+      alert("¡Te equivocaste! Inténtalo de nuevo.");
+      resetGame(); // Restablecer el juego después de perder
+    }
+  };
+
+  const resetGame = () => {
+    setSequence([]);
+    setPlayerInput([]);
+    setLevel(0);
+    setAchievements([]);
+    setGameStarted(false);
+  };
+
+  const startGame = () => {
+    setGameStarted(true);
+    addToSequence();
+  };
+
+  useEffect(() => {
+    // Cargar la puntuación máxima desde localStorage al cargar el componente
+    const savedHighScore = localStorage.getItem('highScore');
+    if (savedHighScore) {
+      setHighScore(Number(savedHighScore));
+    }
+
+    if (sequence.length > 0) playSequence();
+  }, [sequence]);
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+      <h1 className="text-4xl font-bold mb-4">Simón Dice</h1>
+      <p className="text-lg mb-4">Nivel: {level}</p>
+      <p className="text-lg mb-4">Puntuación máxima: {highScore}</p>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      {!gameStarted && (
+        <button
+          onClick={startGame}
+          className="bg-blue-500 text-white p-2 rounded-full mb-4"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Comenzar Juego
+        </button>
+      )}
+
+      <div className="grid grid-cols-2 gap-4 mb-8 w-64 h-64">
+        {colors.map((color) => (
+          <button
+            key={color.id}
+            id={color.id}
+            className={`w-full h-full ${color.color} rounded-lg shadow-lg transition transform active:scale-90 active:opacity-70`}
+            onClick={() => handleInput(color.id)}
+          ></button>
+        ))}
+      </div>
+
+      <div className="mt-4">
+        <h2 className="text-xl font-semibold">Logros:</h2>
+        <ul>
+          {achievements.map((achievement, index) => (
+            <li key={index} className="text-green-400 animate-pulse">
+              {achievement}
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
